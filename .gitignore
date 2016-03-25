@@ -1,0 +1,4 @@
+*.sln
+.vs/gaze/v14/.suo
+*.pyproj
+gaze/haarcascade_frontalface_default.xml
