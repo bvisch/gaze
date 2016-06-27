@@ -2,9 +2,18 @@ import cv2
 import numpy as np
 from math import floor
 
-faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+def find_face(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = faceCascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=3,
+        minSize=(30, 30),
+        flags=cv2.CASCADE_SCALE_IMAGE
+    )
 
-video_capture = cv2.VideoCapture(0)
+    return faces[0]
+
 
 def find_eyes(face):
 
@@ -42,7 +51,7 @@ def find_pupil(eye):
     GX,GY = np.meshgrid(Gx.ravel(),Gy.ravel())
 
     X = (GX*Dx+GY*Dy)
-    #X[X<0] = 0 
+    #X[X<0] = 0
     X = X**2
 
     # weight darker areas higher by multiplying by inverted image
@@ -59,32 +68,32 @@ def find_pupil(eye):
 
     return np.unravel_index(C.argmax(), C.shape)[::-1]
 
+
+
+#
+# MAIN LOOP
+#
+
+faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+video_capture = cv2.VideoCapture(0)
+
 while True:
     # Capture frame-by-frame
     ret, frame = video_capture.read()
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    (x,y,w,h) = find_face(frame)
 
-    faces = faceCascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=3,
-        minSize=(30, 30),
-        flags=cv2.CASCADE_SCALE_IMAGE
-    )
-
-    # Draw a rectangle around the faces
-    for (x, y, w, h) in faces:
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        roi_gray = gray[y:y+h,x:x+w]
-        roi_color = frame[y:y+h,x:x+w]
-        eyes = find_eyes(roi_gray)
-        for (ex,ey,ew,eh) in eyes:
-            eye_gray = roi_gray[ey:ey+eh,ex:ex+ew]
-            eye_color = roi_color[ey:ey+eh,ex:ex+ew]
-            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(255,0,0),2)
-            px,py = find_pupil(eye_gray)
-            cv2.rectangle(eye_color,(px,py),(px+1,py+1),(255,0,255),2)
+    # Draw box around face
+    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    roi_gray = gray[y:y+h,x:x+w]
+    roi_color = frame[y:y+h,x:x+w]
+    eyes = find_eyes(roi_gray)
+    for (ex,ey,ew,eh) in eyes:
+        eye_gray = roi_gray[ey:ey+eh,ex:ex+ew]
+        eye_color = roi_color[ey:ey+eh,ex:ex+ew]
+        cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(255,0,0),2)
+        px,py = find_pupil(eye_gray)
+        cv2.rectangle(eye_color,(px,py),(px+1,py+1),(255,0,255),2)
 
     #Display the resulting frame
     cv2.imshow('video', frame)
