@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 from math import floor
+from PupilFinder import PupilFinder
 
-def find_face(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = faceCascade.detectMultiScale(
-        gray,
+def find_face(frame, face_cascade):
+    faces = face_cascade.detectMultiScale(
+        frame,
         scaleFactor=1.1,
         minNeighbors=3,
         minSize=(30, 30),
@@ -74,26 +74,32 @@ def find_pupil(eye):
 # MAIN LOOP
 #
 
-faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 video_capture = cv2.VideoCapture(0)
+pupil_finder = PupilFinder()
 
 while True:
     # Capture frame-by-frame
     ret, frame = video_capture.read()
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    (x,y,w,h) = find_face(frame)
 
-    # Draw box around face
-    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    roi_gray = gray[y:y+h,x:x+w]
-    roi_color = frame[y:y+h,x:x+w]
-    eyes = find_eyes(roi_gray)
-    for (ex,ey,ew,eh) in eyes:
-        eye_gray = roi_gray[ey:ey+eh,ex:ex+ew]
-        eye_color = roi_color[ey:ey+eh,ex:ex+ew]
-        cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(255,0,0),2)
-        px,py = find_pupil(eye_gray)
-        cv2.rectangle(eye_color,(px,py),(px+1,py+1),(255,0,255),2)
+    try:
+        (x,y,w,h) = find_face(gray, face_cascade)
+
+        # Draw box around face
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        roi_gray = gray[y:y+h,x:x+w]
+        roi_color = frame[y:y+h,x:x+w]
+        eyes = find_eyes(roi_gray)
+        for (ex,ey,ew,eh) in eyes:
+            eye_gray = roi_gray[ey:ey+eh,ex:ex+ew]
+            eye_color = roi_color[ey:ey+eh,ex:ex+ew]
+            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(255,0,0),2)
+            px,py = pupil_finder.find_pupil(eye_gray)
+            cv2.rectangle(eye_color,(px,py),(px+1,py+1),(255,0,255),2)
+    except:
+        pass
 
     #Display the resulting frame
     cv2.imshow('video', frame)
